@@ -1,7 +1,8 @@
 defmodule OpentelemetryLiveView do
   @moduledoc """
   OpentelemetryLiveView uses [telemetry](https://hexdocs.pm/telemetry/) handlers to create
-  `OpenTelemetry` spans. The traced LiveView telemetry events are documented [here](https://hexdocs.pm/phoenix_live_view/telemetry.html).
+  `OpenTelemetry` spans for LiveView *mount*, *handle_params*, and *handle_event*. The LiveView
+  telemetry events that are used are documented [here](https://hexdocs.pm/phoenix_live_view/telemetry.html).
 
   ## Usage
 
@@ -36,10 +37,9 @@ defmodule OpentelemetryLiveView do
                  {:live_component, :handle_event}
                ]
                |> Enum.flat_map(fn {kind, callback_name} ->
-                 Enum.map(
-                   [:start, :stop, :exception],
-                   fn event_name -> [:phoenix, kind, callback_name, event_name] end
-                 )
+                 Enum.map([:start, :stop, :exception], fn event_name ->
+                   [:phoenix, kind, callback_name, event_name]
+                 end)
                end)
 
   @doc """

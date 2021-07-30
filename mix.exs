@@ -38,7 +38,7 @@ defmodule OpentelemetryLiveView.MixProject do
       files: ~w(lib .formatter.exs mix.exs README* LICENSE* CHANGELOG*),
       licenses: ["Apache-2.0"],
       links: %{
-        "GitHub" => "https://github.com/dvic/opentelemetry_liveview",
+        "GitHub" => "https://github.com/qdentity/opentelemetry_liveview",
         "OpenTelemetry Phoenix" => "https://github.com/opentelemetry-beam/opentelemetry_phoenix",
         "OpenTelemetry Erlang" => "https://github.com/open-telemetry/opentelemetry-erlang",
         "OpenTelemetry.io" => "https://opentelemetry.io"
