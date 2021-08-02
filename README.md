@@ -10,6 +10,16 @@ top-level supervisor starts.
 OpentelemetryLiveView.setup()
 ```
 
+## Installation
+
+```elixir
+def deps do
+  [
+    {:opentelemetry_liveview, "~> 1.0.0-rc"}
+  ]
+end
+```
+
 ## Acknowledgements
 
 See https://github.com/opentelemetry-beam/opentelemetry_phoenix for tracing Phoenix web requests.
