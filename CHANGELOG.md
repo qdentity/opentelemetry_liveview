@@ -1,9 +1,12 @@
 # Changelog
 
-## 1.0.0-rc.2
+## v1.0.0-dev
+* Support overriding the attribute that is used for the telemetry 'duration' measurement
+
+## v1.0.0-rc.2
 
 * Support Telemetry 1.0
 
-## 1.0.0-rc.1
+## v1.0.0-rc.1
 
 * Initial release

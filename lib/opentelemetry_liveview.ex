@@ -42,15 +42,28 @@ defmodule OpentelemetryLiveView do
                  end)
                end)
 
+  @type setup_opts :: [duration()]
+  @type duration :: {:duration, {atom(), System.time_unit()}}
+
   @doc """
   Initializes and configures the telemetry handlers.
   """
-  @spec setup() :: :ok
-  def setup do
+  @spec setup(setup_opts()) :: :ok | {:error, :already_exists}
+  def setup(opts \\ []) do
     {:ok, otel_phx_vsn} = :application.get_key(@tracer_id, :vsn)
     OpenTelemetry.register_tracer(@tracer_id, otel_phx_vsn)
 
-    :telemetry.attach_many(__MODULE__, @event_names, &process_event/4, %{})
+    config =
+      Enum.reduce(
+        opts,
+        %{duration: %{key: :"liveview.duration_ms", timeunit: :millisecond}},
+        fn
+          {:duration, {key, timeunit}}, acc when is_atom(key) ->
+            %{acc | duration: %{key: key, timeunit: timeunit}}
+        end
+      )
+
+    :telemetry.attach_many(__MODULE__, @event_names, &process_event/4, config)
   end
 
   defguardp is_liveview_kind(kind) when kind in [:live_view, :live_component]
@@ -95,11 +108,11 @@ defmodule OpentelemetryLiveView do
   end
 
   @doc false
-  def process_event([:phoenix, kind, _kind, :stop], %{duration: duration}, meta, _config)
+  def process_event([:phoenix, kind, _kind, :stop], %{duration: duration}, meta, config)
       when is_liveview_kind(kind) do
     ctx = OpentelemetryTelemetry.set_current_telemetry_span(@tracer_id, meta)
 
-    set_duration(ctx, duration)
+    set_duration(ctx, duration, config)
 
     OpentelemetryTelemetry.end_telemetry_span(@tracer_id, meta)
   end
@@ -109,11 +122,11 @@ defmodule OpentelemetryLiveView do
         [:phoenix, :live_view, _kind, :exception],
         %{duration: duration},
         %{kind: kind, reason: reason, stacktrace: stacktrace} = meta,
-        _config
+        config
       ) do
     ctx = OpentelemetryTelemetry.set_current_telemetry_span(@tracer_id, meta)
 
-    set_duration(ctx, duration)
+    set_duration(ctx, duration, config)
 
     {[reason: reason], attrs} = Reason.normalize(reason) |> Keyword.split([:reason])
 
@@ -126,9 +139,9 @@ defmodule OpentelemetryLiveView do
     OpentelemetryTelemetry.end_telemetry_span(@tracer_id, meta)
   end
 
-  defp set_duration(ctx, duration) do
-    duration_ms = System.convert_time_unit(duration, :native, :millisecond)
-    Span.set_attribute(ctx, :duration_ms, duration_ms)
+  defp set_duration(ctx, duration, %{duration: %{key: key, timeunit: timeunit}}) do
+    converted_duration = System.convert_time_unit(duration, :native, timeunit)
+    Span.set_attribute(ctx, key, converted_duration)
   end
 
   defp module_to_string(module) when is_atom(module) do

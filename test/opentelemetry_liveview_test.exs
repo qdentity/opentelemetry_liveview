@@ -16,6 +16,8 @@ defmodule OpentelemetryLiveViewTest do
   end
 
   setup do
+    _ = :telemetry.detach(OpentelemetryLiveView)
+
     :application.stop(:opentelemetry)
     :application.set_env(:opentelemetry, :tracer, :otel_tracer_default)
 
@@ -26,8 +28,6 @@ defmodule OpentelemetryLiveViewTest do
     :application.start(:opentelemetry)
 
     :otel_batch_processor.set_exporter(:otel_exporter_pid, self())
-
-    OpentelemetryLiveView.setup()
 
     :ok
   end
@@ -45,6 +45,8 @@ defmodule OpentelemetryLiveViewTest do
   }
 
   test "records spans for the mount callback" do
+    OpentelemetryLiveView.setup()
+
     :telemetry.execute(
       [:phoenix, :live_view, :mount, :start],
       %{system_time: System.system_time()},
@@ -65,13 +67,15 @@ defmodule OpentelemetryLiveViewTest do
                     )}
 
     assert List.keysort(attributes, 0) == [
-             duration_ms: 42,
              "liveview.callback": "mount",
+             "liveview.duration_ms": 42,
              "liveview.module": "SomeWeb.SomeLive"
            ]
   end
 
   test "records exceptions for the mount callback" do
+    OpentelemetryLiveView.setup()
+
     :telemetry.execute(
       [:phoenix, :live_view, :mount, :start],
       %{system_time: System.system_time()},
@@ -87,13 +91,14 @@ defmodule OpentelemetryLiveViewTest do
     attributes = assert_receive_bad_key_error_span("SomeWeb.SomeLive.mount")
 
     assert List.keysort(attributes, 0) == [
-             {:duration_ms, 42},
              {:"liveview.callback", "mount"},
+             {:"liveview.duration_ms", 42},
              {:"liveview.module", "SomeWeb.SomeLive"}
            ]
   end
 
   test "records spans for the handle_params callback" do
+    OpentelemetryLiveView.setup()
     meta = Map.put(@meta, :uri, "https://foobar.com")
 
     :telemetry.execute(
@@ -116,14 +121,15 @@ defmodule OpentelemetryLiveViewTest do
                     )}
 
     assert List.keysort(attributes, 0) == [
-             duration_ms: 42,
              "liveview.callback": "handle_params",
+             "liveview.duration_ms": 42,
              "liveview.module": "SomeWeb.SomeLive",
              "liveview.uri": "https://foobar.com"
            ]
   end
 
   test "records exceptions for the handle_params callback" do
+    OpentelemetryLiveView.setup()
     meta = Map.put(@meta, :uri, "https://foobar.com")
 
     :telemetry.execute(
@@ -141,14 +147,15 @@ defmodule OpentelemetryLiveViewTest do
     attributes = assert_receive_bad_key_error_span("SomeWeb.SomeLive.handle_params")
 
     assert List.keysort(attributes, 0) == [
-             {:duration_ms, 42},
-             {:"liveview.callback", "handle_params"},
-             {:"liveview.module", "SomeWeb.SomeLive"},
+             "liveview.callback": "handle_params",
+             "liveview.duration_ms": 42,
+             "liveview.module": "SomeWeb.SomeLive",
              "liveview.uri": "https://foobar.com"
            ]
   end
 
   test "records spans for the handle_event callback" do
+    OpentelemetryLiveView.setup()
     meta = Map.put(@meta, :event, "some_event")
 
     :telemetry.execute(
@@ -171,8 +178,8 @@ defmodule OpentelemetryLiveViewTest do
                     )}
 
     assert List.keysort(attributes, 0) == [
-             duration_ms: 42,
              "liveview.callback": "handle_event",
+             "liveview.duration_ms": 42,
              "liveview.event": "some_event",
              "liveview.module": "SomeWeb.SomeLive"
            ]
@@ -200,10 +207,39 @@ defmodule OpentelemetryLiveViewTest do
                     )}
 
     assert List.keysort(attributes, 0) == [
-             duration_ms: 42,
              "liveview.callback": "handle_event",
+             "liveview.duration_ms": 42,
              "liveview.event": "some_event",
              "liveview.module": "SomeWeb.SomeComponent"
+           ]
+  end
+
+  test "allows modifying the duration attribute" do
+    OpentelemetryLiveView.setup(duration: {:foo, :microsecond})
+
+    :telemetry.execute(
+      [:phoenix, :live_view, :mount, :start],
+      %{system_time: System.system_time()},
+      @meta
+    )
+
+    :telemetry.execute(
+      [:phoenix, :live_view, :mount, :stop],
+      %{duration: System.convert_time_unit(42, :millisecond, :native)},
+      @meta
+    )
+
+    assert_receive {:span,
+                    span(
+                      name: "SomeWeb.SomeLive.mount",
+                      kind: :internal,
+                      attributes: attributes
+                    )}
+
+    assert List.keysort(attributes, 0) == [
+             foo: 42_000,
+             "liveview.callback": "mount",
+             "liveview.module": "SomeWeb.SomeLive"
            ]
   end
 
