@@ -29,6 +29,8 @@ defmodule OpentelemetryLiveViewTest do
 
     :otel_batch_processor.set_exporter(:otel_exporter_pid, self())
 
+    _ = OpentelemetryLiveView.setup()
+
     :ok
   end
 
@@ -45,8 +47,6 @@ defmodule OpentelemetryLiveViewTest do
   }
 
   test "records spans for the mount callback" do
-    OpentelemetryLiveView.setup()
-
     :telemetry.execute(
       [:phoenix, :live_view, :mount, :start],
       %{system_time: System.system_time()},
@@ -74,8 +74,6 @@ defmodule OpentelemetryLiveViewTest do
   end
 
   test "records exceptions for the mount callback" do
-    OpentelemetryLiveView.setup()
-
     :telemetry.execute(
       [:phoenix, :live_view, :mount, :start],
       %{system_time: System.system_time()},
@@ -98,7 +96,6 @@ defmodule OpentelemetryLiveViewTest do
   end
 
   test "records spans for the handle_params callback" do
-    OpentelemetryLiveView.setup()
     meta = Map.put(@meta, :uri, "https://foobar.com")
 
     :telemetry.execute(
@@ -129,7 +126,6 @@ defmodule OpentelemetryLiveViewTest do
   end
 
   test "records exceptions for the handle_params callback" do
-    OpentelemetryLiveView.setup()
     meta = Map.put(@meta, :uri, "https://foobar.com")
 
     :telemetry.execute(
@@ -155,7 +151,6 @@ defmodule OpentelemetryLiveViewTest do
   end
 
   test "records spans for the handle_event callback" do
-    OpentelemetryLiveView.setup()
     meta = Map.put(@meta, :event, "some_event")
 
     :telemetry.execute(
@@ -215,6 +210,7 @@ defmodule OpentelemetryLiveViewTest do
   end
 
   test "allows modifying the duration attribute" do
+    _ = :telemetry.detach(OpentelemetryLiveView)
     OpentelemetryLiveView.setup(duration: {:foo, :microsecond})
 
     :telemetry.execute(
