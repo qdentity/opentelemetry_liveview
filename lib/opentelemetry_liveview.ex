@@ -50,7 +50,7 @@ defmodule OpentelemetryLiveView do
     {:ok, otel_phx_vsn} = :application.get_key(@tracer_id, :vsn)
     OpenTelemetry.register_tracer(@tracer_id, otel_phx_vsn)
 
-    :telemetry.attach_many(__MODULE__, @event_names, &process_event/4, %{})
+    :telemetry.attach_many(__MODULE__, @event_names, &__MODULE__.process_event/4, %{})
   end
 
   defguardp is_liveview_kind(kind) when kind in [:live_view, :live_component]
