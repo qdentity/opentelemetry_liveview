@@ -64,11 +64,11 @@ defmodule OpentelemetryLiveViewTest do
                       attributes: attributes
                     )}
 
-    assert List.keysort(attributes, 0) == [
+    assert :otel_attributes.map(attributes) == %{
              duration_ms: 42,
              "liveview.callback": "mount",
              "liveview.module": "SomeWeb.SomeLive"
-           ]
+           }
   end
 
   test "records exceptions for the mount callback" do
@@ -86,11 +86,11 @@ defmodule OpentelemetryLiveViewTest do
 
     attributes = assert_receive_bad_key_error_span("SomeWeb.SomeLive.mount")
 
-    assert List.keysort(attributes, 0) == [
-             {:duration_ms, 42},
-             {:"liveview.callback", "mount"},
-             {:"liveview.module", "SomeWeb.SomeLive"}
-           ]
+    assert :otel_attributes.map(attributes) == %{
+             duration_ms: 42,
+             "liveview.callback": "mount",
+             "liveview.module": "SomeWeb.SomeLive"
+           }
   end
 
   test "records spans for the handle_params callback" do
@@ -115,12 +115,12 @@ defmodule OpentelemetryLiveViewTest do
                       attributes: attributes
                     )}
 
-    assert List.keysort(attributes, 0) == [
+    assert :otel_attributes.map(attributes) == %{
              duration_ms: 42,
              "liveview.callback": "handle_params",
              "liveview.module": "SomeWeb.SomeLive",
              "liveview.uri": "https://foobar.com"
-           ]
+           }
   end
 
   test "records exceptions for the handle_params callback" do
@@ -140,12 +140,12 @@ defmodule OpentelemetryLiveViewTest do
 
     attributes = assert_receive_bad_key_error_span("SomeWeb.SomeLive.handle_params")
 
-    assert List.keysort(attributes, 0) == [
-             {:duration_ms, 42},
-             {:"liveview.callback", "handle_params"},
-             {:"liveview.module", "SomeWeb.SomeLive"},
+    assert :otel_attributes.map(attributes) == %{
+             duration_ms: 42,
+             "liveview.callback": "handle_params",
+             "liveview.module": "SomeWeb.SomeLive",
              "liveview.uri": "https://foobar.com"
-           ]
+           }
   end
 
   test "records spans for the handle_event callback" do
@@ -170,12 +170,12 @@ defmodule OpentelemetryLiveViewTest do
                       attributes: attributes
                     )}
 
-    assert List.keysort(attributes, 0) == [
+    assert :otel_attributes.map(attributes) == %{
              duration_ms: 42,
              "liveview.callback": "handle_event",
              "liveview.event": "some_event",
              "liveview.module": "SomeWeb.SomeLive"
-           ]
+           }
 
     # for live_component
     meta = %{socket: %{}, event: "some_event", component: SomeWeb.SomeComponent}
@@ -199,12 +199,12 @@ defmodule OpentelemetryLiveViewTest do
                       attributes: attributes
                     )}
 
-    assert List.keysort(attributes, 0) == [
+    assert :otel_attributes.map(attributes) == %{
              duration_ms: 42,
              "liveview.callback": "handle_event",
              "liveview.event": "some_event",
              "liveview.module": "SomeWeb.SomeComponent"
-           ]
+           }
   end
 
   defp assert_receive_bad_key_error_span(name) do
@@ -215,20 +215,22 @@ defmodule OpentelemetryLiveViewTest do
                       name: ^name,
                       attributes: attributes,
                       kind: :internal,
-                      events: [
-                        event(
-                          name: "exception",
-                          attributes: [
-                            {"exception.type", "Elixir.ErlangError"},
-                            {"exception.message", "Erlang error: :badkey"},
-                            {"exception.stacktrace", _stacktrace},
-                            {:key, :name},
-                            {:map, %{username: "foobar"}}
-                          ]
-                        )
-                      ],
+                      events: events,
                       status: ^expected_status
                     )}
+
+    assert [event(name: "exception", attributes: exception_attributes)] = :otel_events.list(events)
+
+    # The :map field is filtered because attribute values can only contain
+    # primitives or lists of primitives (not maps).
+    #
+    # See https://opentelemetry.io/docs/reference/specification/common/common/#attributes
+    assert %{
+             "exception.type" => "Elixir.ErlangError",
+             "exception.message" => "Erlang error: :badkey",
+             "exception.stacktrace" => _stacktrace,
+             key: :name
+           } = :otel_attributes.map(exception_attributes)
 
     attributes
   end
