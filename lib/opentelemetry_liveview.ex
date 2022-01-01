@@ -25,7 +25,7 @@ defmodule OpentelemetryLiveView do
   alias OpenTelemetry.Span
   alias OpentelemetryLiveView.Reason
 
-  @tracer_id :opentelemetry_liveview
+  @tracer_id __MODULE__
 
   @event_names [
                  {:live_view, :mount},
