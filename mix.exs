@@ -5,7 +5,7 @@ defmodule OpentelemetryLiveView.MixProject do
     [
       app: :opentelemetry_liveview,
       description: description(),
-      version: "1.0.0-rc.2",
+      version: "1.0.0-rc.3",
       elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
       dialyzer: [plt_core_path: if(System.get_env("CI") == "true", do: "_build/#{Mix.env()}")],
