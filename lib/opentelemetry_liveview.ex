@@ -9,9 +9,6 @@ defmodule OpentelemetryLiveView do
   Add in your application start function a call to `setup/0`:
 
       def start(_type, _args) do
-        # this register a tracer for your application
-        OpenTelemetry.register_application_tracer(:my_app)
-
         # this configures the liveview tracing
         OpentelemetryLiveView.setup()
 
@@ -28,7 +25,7 @@ defmodule OpentelemetryLiveView do
   alias OpenTelemetry.Span
   alias OpentelemetryLiveView.Reason
 
-  @tracer_id :opentelemetry_liveview
+  @tracer_id __MODULE__
 
   @event_names [
                  {:live_view, :mount},
@@ -47,9 +44,6 @@ defmodule OpentelemetryLiveView do
   """
   @spec setup() :: :ok
   def setup do
-    {:ok, otel_phx_vsn} = :application.get_key(@tracer_id, :vsn)
-    OpenTelemetry.register_tracer(@tracer_id, otel_phx_vsn)
-
     :telemetry.attach_many(__MODULE__, @event_names, &__MODULE__.process_event/4, %{})
   end
 

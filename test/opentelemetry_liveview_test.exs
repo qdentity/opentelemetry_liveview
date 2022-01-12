@@ -62,13 +62,15 @@ defmodule OpentelemetryLiveViewTest do
                       name: "SomeWeb.SomeLive.mount",
                       kind: :internal,
                       attributes: attributes
-                    )}
+                    ) = span}
 
-    assert List.keysort(attributes, 0) == [
+    assert :otel_attributes.map(attributes) == %{
              duration_ms: 42,
              "liveview.callback": "mount",
              "liveview.module": "SomeWeb.SomeLive"
-           ]
+           }
+
+    assert_instrumentation_library(span)
   end
 
   test "records exceptions for the mount callback" do
@@ -84,13 +86,15 @@ defmodule OpentelemetryLiveViewTest do
       Map.merge(@meta, @bad_key_error)
     )
 
-    attributes = assert_receive_bad_key_error_span("SomeWeb.SomeLive.mount")
+    {span, attributes} = assert_receive_bad_key_error_span("SomeWeb.SomeLive.mount")
 
-    assert List.keysort(attributes, 0) == [
-             {:duration_ms, 42},
-             {:"liveview.callback", "mount"},
-             {:"liveview.module", "SomeWeb.SomeLive"}
-           ]
+    assert :otel_attributes.map(attributes) == %{
+             duration_ms: 42,
+             "liveview.callback": "mount",
+             "liveview.module": "SomeWeb.SomeLive"
+           }
+
+    assert_instrumentation_library(span)
   end
 
   test "records spans for the handle_params callback" do
@@ -113,14 +117,16 @@ defmodule OpentelemetryLiveViewTest do
                       name: "SomeWeb.SomeLive.handle_params",
                       kind: :internal,
                       attributes: attributes
-                    )}
+                    ) = span}
 
-    assert List.keysort(attributes, 0) == [
+    assert :otel_attributes.map(attributes) == %{
              duration_ms: 42,
              "liveview.callback": "handle_params",
              "liveview.module": "SomeWeb.SomeLive",
              "liveview.uri": "https://foobar.com"
-           ]
+           }
+
+    assert_instrumentation_library(span)
   end
 
   test "records exceptions for the handle_params callback" do
@@ -138,14 +144,16 @@ defmodule OpentelemetryLiveViewTest do
       Map.merge(meta, @bad_key_error)
     )
 
-    attributes = assert_receive_bad_key_error_span("SomeWeb.SomeLive.handle_params")
+    {span, attributes} = assert_receive_bad_key_error_span("SomeWeb.SomeLive.handle_params")
 
-    assert List.keysort(attributes, 0) == [
-             {:duration_ms, 42},
-             {:"liveview.callback", "handle_params"},
-             {:"liveview.module", "SomeWeb.SomeLive"},
+    assert :otel_attributes.map(attributes) == %{
+             duration_ms: 42,
+             "liveview.callback": "handle_params",
+             "liveview.module": "SomeWeb.SomeLive",
              "liveview.uri": "https://foobar.com"
-           ]
+           }
+
+    assert_instrumentation_library(span)
   end
 
   test "records spans for the handle_event callback" do
@@ -168,14 +176,16 @@ defmodule OpentelemetryLiveViewTest do
                       name: "SomeWeb.SomeLive.some_event",
                       kind: :internal,
                       attributes: attributes
-                    )}
+                    ) = span}
 
-    assert List.keysort(attributes, 0) == [
+    assert :otel_attributes.map(attributes) == %{
              duration_ms: 42,
              "liveview.callback": "handle_event",
              "liveview.event": "some_event",
              "liveview.module": "SomeWeb.SomeLive"
-           ]
+           }
+
+    assert_instrumentation_library(span)
 
     # for live_component
     meta = %{socket: %{}, event: "some_event", component: SomeWeb.SomeComponent}
@@ -197,14 +207,16 @@ defmodule OpentelemetryLiveViewTest do
                       name: "SomeWeb.SomeComponent.some_event",
                       kind: :internal,
                       attributes: attributes
-                    )}
+                    ) = span}
 
-    assert List.keysort(attributes, 0) == [
+    assert :otel_attributes.map(attributes) == %{
              duration_ms: 42,
              "liveview.callback": "handle_event",
              "liveview.event": "some_event",
              "liveview.module": "SomeWeb.SomeComponent"
-           ]
+           }
+
+    assert_instrumentation_library(span)
   end
 
   defp assert_receive_bad_key_error_span(name) do
@@ -215,21 +227,40 @@ defmodule OpentelemetryLiveViewTest do
                       name: ^name,
                       attributes: attributes,
                       kind: :internal,
-                      events: [
-                        event(
-                          name: "exception",
-                          attributes: [
-                            {"exception.type", "Elixir.ErlangError"},
-                            {"exception.message", "Erlang error: :badkey"},
-                            {"exception.stacktrace", _stacktrace},
-                            {:key, :name},
-                            {:map, %{username: "foobar"}}
-                          ]
-                        )
-                      ],
+                      events: events,
                       status: ^expected_status
-                    )}
+                    ) = span}
 
-    attributes
+    assert [event(name: "exception", attributes: exception_attributes)] = :otel_events.list(events)
+
+    # The :map field is filtered because attribute values can only contain
+    # primitives or lists of primitives (not maps).
+    #
+    # See https://opentelemetry.io/docs/reference/specification/common/common/#attributes
+    assert %{
+             "exception.type" => "Elixir.ErlangError",
+             "exception.message" => "Erlang error: :badkey",
+             "exception.stacktrace" => _stacktrace,
+             key: :name
+           } = :otel_attributes.map(exception_attributes)
+
+    {span, attributes}
+  end
+
+  defp assert_instrumentation_library(span) do
+    lib_from_otel =
+      span
+      |> span(:instrumentation_library)
+      |> instrumentation_library()
+      |> Map.new()
+
+    opentelemetry_liveview_version =
+      Application.loaded_applications()
+      |> List.keyfind(:opentelemetry_liveview, 0)
+      |> elem(2)
+      |> to_string()
+
+    assert %{name: "opentelemetry_liveview", version: ^opentelemetry_liveview_version} =
+             lib_from_otel
   end
 end
