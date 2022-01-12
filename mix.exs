@@ -52,9 +52,9 @@ defmodule OpentelemetryLiveView.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:opentelemetry_api, "~> 1.0.0-rc.4.1"},
-      {:opentelemetry, "~> 1.0.0-rc.4", only: [:test]},
-      {:opentelemetry_telemetry, "~> 1.0.0-beta.6.1"},
+      {:opentelemetry_api, "~> 1.0"},
+      {:opentelemetry, "~> 1.0", only: [:test]},
+      {:opentelemetry_telemetry, "~> 1.0.0-beta.7"},
       {:telemetry, "~> 0.4 or ~> 1.0"},
       {:ex_doc, "~> 0.24", only: [:dev], runtime: false},
       {:dialyxir, "~> 1.1", only: [:dev, :test], runtime: false}
