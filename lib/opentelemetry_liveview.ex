@@ -47,13 +47,13 @@ defmodule OpentelemetryLiveView do
     :telemetry.attach_many(__MODULE__, @event_names, &__MODULE__.process_event/4, %{})
   end
 
-  defguardp is_liveview_kind(kind) when kind in [:live_view, :live_component]
+  defguardp live_view_or_component?(source) when source in [:live_view, :live_component]
 
   @doc false
-  def process_event([:phoenix, kind, callback_name, :start], _measurements, meta, _config)
-      when is_liveview_kind(kind) do
+  def process_event([:phoenix, source, callback_name, :start], _measurements, meta, _config)
+      when live_view_or_component?(source) do
     module =
-      case {kind, meta} do
+      case {source, meta} do
         {:live_view, _} -> module_to_string(meta.socket.view)
         {:live_component, %{component: component}} -> module_to_string(component)
       end
@@ -89,8 +89,8 @@ defmodule OpentelemetryLiveView do
   end
 
   @doc false
-  def process_event([:phoenix, kind, _kind, :stop], %{duration: duration}, meta, _config)
-      when is_liveview_kind(kind) do
+  def process_event([:phoenix, source, _kind, :stop], %{duration: duration}, meta, _config)
+      when live_view_or_component?(source) do
     ctx = OpentelemetryTelemetry.set_current_telemetry_span(@tracer_id, meta)
 
     set_duration(ctx, duration)
@@ -100,18 +100,19 @@ defmodule OpentelemetryLiveView do
 
   @doc false
   def process_event(
-        [:phoenix, :live_view, _kind, :exception],
+        [:phoenix, source, _kind, :exception],
         %{duration: duration},
-        %{kind: kind, reason: reason, stacktrace: stacktrace} = meta,
+        %{kind: exception_kind, reason: reason, stacktrace: stacktrace} = meta,
         _config
-      ) do
+      )
+      when live_view_or_component?(source) do
     ctx = OpentelemetryTelemetry.set_current_telemetry_span(@tracer_id, meta)
 
     set_duration(ctx, duration)
 
     {[reason: reason], attrs} = Reason.normalize(reason) |> Keyword.split([:reason])
 
-    exception = Exception.normalize(kind, reason, stacktrace)
+    exception = Exception.normalize(exception_kind, reason, stacktrace)
     message = Exception.message(exception)
 
     Span.record_exception(ctx, exception, stacktrace, attrs)
