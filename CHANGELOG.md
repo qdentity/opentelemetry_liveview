@@ -1,6 +1,6 @@
 # Changelog
 
-## unreleased
+## 1.0.0-rc.4
 
 * Fix handlilng exceptions coming from live components #10
 
