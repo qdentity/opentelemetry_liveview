@@ -70,7 +70,7 @@ defmodule OpentelemetryLiveViewTest do
              "liveview.module": "SomeWeb.SomeLive"
            }
 
-    assert_instrumentation_library(span)
+    assert_instrumentation_scope(span)
   end
 
   test "records exceptions for the mount callback" do
@@ -94,7 +94,7 @@ defmodule OpentelemetryLiveViewTest do
              "liveview.module": "SomeWeb.SomeLive"
            }
 
-    assert_instrumentation_library(span)
+    assert_instrumentation_scope(span)
   end
 
   test "records spans for the handle_params callback" do
@@ -126,7 +126,7 @@ defmodule OpentelemetryLiveViewTest do
              "liveview.uri": "https://foobar.com"
            }
 
-    assert_instrumentation_library(span)
+    assert_instrumentation_scope(span)
   end
 
   test "records exceptions for the handle_params callback" do
@@ -153,7 +153,7 @@ defmodule OpentelemetryLiveViewTest do
              "liveview.uri": "https://foobar.com"
            }
 
-    assert_instrumentation_library(span)
+    assert_instrumentation_scope(span)
   end
 
   test "records spans for the handle_event callback" do
@@ -185,7 +185,7 @@ defmodule OpentelemetryLiveViewTest do
              "liveview.module": "SomeWeb.SomeLive"
            }
 
-    assert_instrumentation_library(span)
+    assert_instrumentation_scope(span)
 
     # for live_component
     meta = %{socket: %{}, event: "some_event", component: SomeWeb.SomeComponent}
@@ -216,7 +216,7 @@ defmodule OpentelemetryLiveViewTest do
              "liveview.module": "SomeWeb.SomeComponent"
            }
 
-    assert_instrumentation_library(span)
+    assert_instrumentation_scope(span)
   end
 
   defp assert_receive_bad_key_error_span(name) do
@@ -247,11 +247,11 @@ defmodule OpentelemetryLiveViewTest do
     {span, attributes}
   end
 
-  defp assert_instrumentation_library(span) do
+  defp assert_instrumentation_scope(span) do
     lib_from_otel =
       span
-      |> span(:instrumentation_library)
-      |> instrumentation_library()
+      |> span(:instrumentation_scope)
+      |> instrumentation_scope()
       |> Map.new()
 
     opentelemetry_liveview_version =

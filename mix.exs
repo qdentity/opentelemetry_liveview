@@ -54,7 +54,7 @@ defmodule OpentelemetryLiveView.MixProject do
     [
       {:opentelemetry_api, "~> 1.0"},
       {:opentelemetry, "~> 1.0", only: [:test]},
-      {:opentelemetry_telemetry, "~> 1.0.0-beta.7"},
+      {:opentelemetry_telemetry, "~> 1.0"},
       {:telemetry, "~> 0.4 or ~> 1.0"},
       {:ex_doc, "~> 0.24", only: [:dev], runtime: false},
       {:dialyxir, "~> 1.1", only: [:dev, :test], runtime: false}
