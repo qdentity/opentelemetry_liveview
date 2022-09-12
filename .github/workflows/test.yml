@@ -20,6 +20,8 @@ jobs:
         exclude:
           - otp_version: '25'
             elixir: '1.11.4'
+          - otp_version: '25'
+            elixir: '1.12.3'
     steps:
       - uses: actions/checkout@v2
       - uses: erlef/setup-elixir@v1
