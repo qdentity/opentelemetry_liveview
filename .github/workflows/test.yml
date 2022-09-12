@@ -17,6 +17,9 @@ jobs:
       matrix:
         otp_version: ['25', '24', '23']
         elixir: ['1.14.0', '1.13.4', '1.12.3', '1.11.4']
+        exclude:
+          - otp_version: '25'
+            elixir: '1.11.4'
     steps:
       - uses: actions/checkout@v2
       - uses: erlef/setup-elixir@v1
